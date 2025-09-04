@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import os
+import pandas as pd
 from core.pdf_processor import BankStatementProcessor
+from core.parsers import Transaction  # Updated import
 
 class BankExtractorGUI:
     def __init__(self):
@@ -29,16 +31,20 @@ class BankExtractorGUI:
         ttk.Button(file_frame, text="Browse", command=self.browse_file).grid(row=0, column=1)
         ttk.Button(file_frame, text="Process PDF", command=self.process_pdf).grid(row=0, column=2, padx=(10, 0))
         
+        # Supported banks info
+        banks_info = f"Supported Banks: {', '.join(self.processor.get_supported_banks())}"
+        ttk.Label(main_frame, text=banks_info, font=('TkDefaultFont', 8)).grid(row=1, column=0, columnspan=2, pady=(0, 5))
+        
         # Status
         self.status_var = tk.StringVar(value="Select a PDF file to begin...")
-        ttk.Label(main_frame, textvariable=self.status_var).grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        ttk.Label(main_frame, textvariable=self.status_var).grid(row=2, column=0, columnspan=2, pady=(0, 10))
         
         # Results table
         table_frame = ttk.LabelFrame(main_frame, text="Extracted Transactions", padding="10")
-        table_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        table_frame.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
         
-        # Treeview for results
-        columns = ('Date', 'Description', 'Amount', 'Check No')
+        # Treeview for results - Updated column order
+        columns = ('Date', 'Check No', 'Description', 'Amount')
         self.tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
         
         # Column headings
@@ -53,7 +59,6 @@ class BankExtractorGUI:
         self.tree.column('Description', width=400)
         self.tree.column('Amount', width=100)
         
-        
         # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
@@ -63,7 +68,7 @@ class BankExtractorGUI:
         
         # Export buttons
         export_frame = ttk.Frame(main_frame)
-        export_frame.grid(row=3, column=0, columnspan=2, pady=(10, 0))
+        export_frame.grid(row=4, column=0, columnspan=2, pady=(10, 0))
         
         ttk.Button(export_frame, text="Export to CSV", command=self.export_csv).grid(row=0, column=0, padx=(0, 10))
         ttk.Button(export_frame, text="Export to Excel", command=self.export_excel).grid(row=0, column=1)
@@ -72,7 +77,7 @@ class BankExtractorGUI:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(2, weight=1)
+        main_frame.rowconfigure(3, weight=1)  # Updated row index
         table_frame.columnconfigure(0, weight=1)
         table_frame.rowconfigure(0, weight=1)
     
@@ -108,13 +113,13 @@ class BankExtractorGUI:
             for item in self.tree.get_children():
                 self.tree.delete(item)
             
-            # Add new results
+            # Add new results - Order: Date, Check No, Description, Amount
             for txn in transactions:
                 self.tree.insert('', 'end', values=(
                     txn.date,
+                    txn.check_number or "",
                     txn.description[:50] + "..." if len(txn.description) > 50 else txn.description,
-                    f"${txn.amount:.2f}",
-                    txn.check_number or ""
+                    f"${txn.amount:.2f}"
                 ))
             
             self.status_var.set(f"Extracted {len(transactions)} transactions from {bank_type.replace('_', ' ').title()}")
@@ -136,7 +141,7 @@ class BankExtractorGUI:
         
         if filename:
             try:
-                self.processor.export_to_csv(self.current_transactions, filename, self.current_bank_type)
+                self.processor.export_to_csv(self.current_transactions, filename)
                 messagebox.showinfo("Success", f"Exported {len(self.current_transactions)} transactions to CSV")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to export CSV:\n{str(e)}")
@@ -158,7 +163,7 @@ class BankExtractorGUI:
                 data = []
                 for txn in self.current_transactions:
                     data.append({
-                        'Date': self.processor._standardize_date(txn.date),
+                        'Date': txn.date,
                         'Check No': txn.check_number or '',
                         'Description': txn.description,
                         'Amount': txn.amount
