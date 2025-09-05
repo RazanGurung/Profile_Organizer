@@ -212,27 +212,18 @@ class BankOfAmericaParser(BaseParser):
     
     def __init__(self):
         super().__init__()
-        # Precompiled patterns for performance
         self.date_pat = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
         self.money_pat = re.compile(r"[-+]?\$?\d[\d,]*\.\d{2}")
         self.check_word_pat = re.compile(r"\bCHECK(?!CARD)\b", re.IGNORECASE)
         self.checknum_pat = re.compile(r"\b\d{3,}\*?\b")
-        
-        # Enhanced patterns for daily ledger detection
-        self.ledger_header_pat = re.compile(
-            r"DAILY\s+LEDGER\s+BALANCES?(?:\s*-?\s*CONTINUED?)?", 
-            re.IGNORECASE
+
+        # Existing: requires 2+ date-amount pairs
+        self.pure_ledger_pat = re.compile(
+            r"^(?:\s*\d{1,2}/\d{1,2}(?:/\d{2,4})?\s+[-+]?\$?\d[\d,]*\.\d{2}\s*){2,}$"
         )
-        
-        # Pattern for ledger row: date, balance, date, balance, date, balance
-        self.ledger_row_pat = re.compile(
-            r"^(?:\s*\d{1,2}/\d{1,2}\s+[-]?\d[\d,]*\.\d{2}\s*){2,}$"
-        )
-        
-        # Pattern for ledger header row (Date Balance($) Date Balance($) etc.)
-        self.ledger_column_header_pat = re.compile(
-            r"Date\s+Balance\s*\(\$?\)\s+Date\s+Balance",
-            re.IGNORECASE
+        # NEW: exactly one date-amount pair (the "orphan" ledger row case)
+        self.single_ledger_pat = re.compile(
+            r"^\s*\d{1,2}/\d{1,2}(?:/\d{2,4})?\s+[-+]?\$?\d[\d,]*\.\d{2}\s*$"
         )
     
     def get_bank_name(self) -> str:
@@ -243,7 +234,10 @@ class BankOfAmericaParser(BaseParser):
     
     def process_tables(self, tables: List[pd.DataFrame]) -> List[Transaction]:
         """
-        Enhanced Bank of America parsing with improved daily ledger detection
+        Simple Bank of America parsing:
+        - Use amount signs exactly as they appear (positive = deposit, negative = withdrawal)
+        - Only skip obvious "Daily ledger balances" tables
+        - Process ALL other tables, including small/broken ones
         """
         transactions: List[Transaction] = []
         print(f"Processing {len(tables)} tables for Bank of America...")
@@ -255,9 +249,17 @@ class BankOfAmericaParser(BaseParser):
 
             print(f"Table {t_idx}: {df.shape[0]} rows, {df.shape[1]} cols")
 
-            # Enhanced daily ledger detection
-            if self._is_daily_ledger_table(df, t_idx):
-                print(f"  -> Skipping: Daily ledger balances table")
+            # Enhanced detection for Daily ledger balances tables
+            probe_text = " ".join(self._norm(self._row_to_text(r)) for _, r in df.head(3).iterrows())
+            
+            # Check for explicit header
+            if "DAILY LEDGER BALANCES" in probe_text.upper():
+                print(f"  -> Skipping: Daily ledger balances table (header detected)")
+                continue
+            
+            # Additional check: if it's mostly simple date-balance pairs without check numbers
+            if self._is_simple_daily_ledger_table(df):
+                print(f"  -> Skipping: Daily ledger balances table (pattern detected)")
                 continue
 
             # Process ALL other tables
@@ -267,9 +269,8 @@ class BankOfAmericaParser(BaseParser):
                 if len(row_text) < 8:
                     continue
 
-                # Skip individual ledger rows that might have slipped through
-                if self._is_ledger_row(row_text):
-                    print(f"    Row {row_idx}: Skipping ledger row")
+                # Skip ONLY pure ledger rows (date amount date amount...)
+                if self._is_pure_ledger_row(row_text):
                     continue
 
                 # Handle side-by-side check tables
@@ -291,7 +292,8 @@ class BankOfAmericaParser(BaseParser):
 
                 upper = row_text.upper()
 
-                # Check detection
+                # FIXED: More specific check detection
+                # Only classify as check if: has CHECK word, has number, is negative, and is NOT a return/deposit/fee
                 has_check_word = self.check_word_pat.search(upper) is not None
                 has_check_number = self.checknum_pat.search(row_text) is not None
                 is_negative_amount = amount < 0
@@ -310,7 +312,7 @@ class BankOfAmericaParser(BaseParser):
                         Transaction(
                             date=self._standardize_date(date_str),
                             description=self._clean_description(row_text) or "Check",
-                            amount=amount,
+                            amount=amount,  # Use amount exactly as extracted
                             check_number=check_number,
                             transaction_type="check",
                         )
@@ -333,7 +335,7 @@ class BankOfAmericaParser(BaseParser):
                     Transaction(
                         date=self._standardize_date(date_str),
                         description=self._clean_description(row_text),
-                        amount=amount,
+                        amount=amount,  # Use amount exactly as extracted
                         check_number=None,
                         transaction_type=txn_type,
                     )
@@ -346,131 +348,39 @@ class BankOfAmericaParser(BaseParser):
         print(f"Total transactions extracted: {len(transactions)}")
         return transactions
     
-    def _is_daily_ledger_table(self, df: pd.DataFrame, table_idx: int) -> bool:
-        """
-        Comprehensive detection for daily ledger balance tables
-        """
-        if df.empty or df.shape[0] < 2:
-            return False
-        
-        # Method 1: Check for explicit headers in the first few rows
-        probe_text = " ".join(self._norm(self._row_to_text(r)) for _, r in df.head(3).iterrows())
-        
-        # Look for various header patterns
-        if self.ledger_header_pat.search(probe_text):
-            print(f"    Table {table_idx}: Header pattern detected - 'Daily ledger balances'")
-            return True
-        
-        if self.ledger_column_header_pat.search(probe_text):
-            print(f"    Table {table_idx}: Column header pattern detected - 'Date Balance($)'")
-            return True
-        
-        # Method 2: Check for characteristic patterns
-        # Look for multiple occurrences of the pattern: MM/DD followed by amount
-        ledger_rows = 0
-        non_ledger_rows = 0
-        
-        for _, row in df.head(8).iterrows():  # Check more rows for better detection
-            row_text = self._norm(self._row_to_text(row))
-            if len(row_text.strip()) < 5:
-                continue
-                
-            if self._is_ledger_row(row_text):
-                ledger_rows += 1
-            else:
-                # Check if it contains transaction-like content
-                if self._contains_transaction_content(row_text):
-                    non_ledger_rows += 1
-        
-        # If majority of rows look like ledger rows and no transaction content
-        if ledger_rows >= 3 and non_ledger_rows == 0:
-            print(f"    Table {table_idx}: Pattern analysis - {ledger_rows} ledger rows, {non_ledger_rows} transaction rows")
-            return True
-        
-        # Method 3: Check for three-column date/balance layout
-        if self._has_three_column_date_balance_layout(df):
-            print(f"    Table {table_idx}: Three-column date/balance layout detected")
-            return True
-        
-        return False
-    
-    def _is_ledger_row(self, text: str) -> bool:
-        """
-        Check if a single row is a ledger balance row
-        Looks for pattern: date amount date amount (possibly date amount)
-        """
-        # Clean up the text
-        normalized = self._norm(text.replace("(", "-").replace(")", ""))
-        
-        # Count dates and amounts
-        dates = self.date_pat.findall(normalized)
-        amounts = self.money_pat.findall(normalized)
-        
-        # Ledger rows typically have 2-3 date/amount pairs
-        if len(dates) >= 2 and len(amounts) >= 2:
-            # Remove all dates and amounts, see what's left
-            temp = self.date_pat.sub("", normalized)
-            temp = self.money_pat.sub("", temp)
-            temp = re.sub(r"[(),\s$\-]+", "", temp).strip()
-            
-            # If very little non-date/amount content remains, it's likely a ledger row
-            if len(temp) <= 8:  # Allow for some column headers like "Balance($)"
-                return True
-        
-        return False
-    
-    def _contains_transaction_content(self, text: str) -> bool:
-        """
-        Check if text contains transaction-like content (descriptions, company names, etc.)
-        """
-        upper = text.upper()
-        
-        # Transaction indicators
-        transaction_keywords = [
-            "MECCA", "PAYMENT", "CHECKCARD", "PURCHASE", "DEPOSIT", "WITHDRAWAL",
-            "ACH", "TRANSFER", "SQUARE", "EDI", "CHECK", "CARD", "ATM",
-            "MERCHANT", "REVENUE", "SECURITY", "BRANDS", "TOBACCO"
-        ]
-        
-        return any(keyword in upper for keyword in transaction_keywords)
-    
-    def _has_three_column_date_balance_layout(self, df: pd.DataFrame) -> bool:
-        """
-        Check if the table has the characteristic three-column layout of daily ledger tables:
-        Date Balance($) Date Balance($) Date Balance($)
-        """
-        if df.shape[1] < 6:  # Need at least 6 columns for 3 date/balance pairs
-            return False
-        
-        # Check if first row looks like column headers
-        first_row = self._norm(self._row_to_text(df.iloc[0]))
-        if re.search(r"Date.*Balance.*Date.*Balance", first_row, re.IGNORECASE):
-            return True
-        
-        # Check if data rows have the expected pattern
-        date_balance_pairs = 0
-        for _, row in df.head(5).iterrows():
-            row_values = [str(val) if pd.notna(val) else "" for val in row.tolist()]
-            
-            # Count alternating date/balance pattern
-            pairs_in_row = 0
-            for i in range(0, len(row_values) - 1, 2):
-                date_val = row_values[i].strip()
-                balance_val = row_values[i + 1].strip()
-                
-                if (self.date_pat.match(date_val) and 
-                    re.match(r"[-]?\d[\d,]*\.\d{2}$", balance_val)):
-                    pairs_in_row += 1
-            
-            if pairs_in_row >= 2:
-                date_balance_pairs += 1
-        
-        return date_balance_pairs >= 3
-    
     def _norm(self, s: str) -> str:
         """Normalize whitespace"""
         return re.sub(r"\s+", " ", s.replace("\xa0", " ")).strip()
-    
+
+    def _is_pure_ledger_row(self, text: str) -> bool:
+            """
+            Skip daily-ledger balance rows:
+            - classic: multiple (date amount) pairs
+            - NEW: a single (date amount) with no other content
+            """
+            # Normalize parentheses negatives: (1,234.56) -> -1,234.56
+            t = self._norm(re.sub(r"\(([\d,]+\.\d{2})\)", r"-\1", text))
+
+            # Remove dates and amounts to see what's left (e.g., descriptions, check #s)
+            leftover = self.date_pat.sub("", t)
+            leftover = self.money_pat.sub("", leftover)
+            # Strip punctuation/whitespace/symbols commonly around numbers
+            leftover = re.sub(r"[()\s,$\-]+", "", leftover)
+
+            # If there's real text or other numbers (e.g., check numbers) left, it's not a ledger-only line
+            if len(leftover) > 3:
+                return False
+
+            # Old rule: 2+ pairs across the row (side-by-side ledger columns)
+            if self.pure_ledger_pat.match(t) is not None:
+                return True
+
+            # NEW rule: exactly one (date amount) and nothing meaningful left
+            if self.single_ledger_pat.match(t) is not None and len(leftover) <= 1:
+                return True
+
+            return False
+        
     def _parse_checks_row_multi(self, row_text: str) -> List[Transaction]:
         """
         Parse side-by-side check entries: Date Check# Amount Date Check# Amount
@@ -480,7 +390,7 @@ class BankOfAmericaParser(BaseParser):
         # Normalize parentheses negatives: (1,234.56) -> -1,234.56
         text = re.sub(r"\(([\d,]+\.\d{2})\)", r"-\1", row_text)
 
-        # Pattern for: DATE  CHECKNO  AMOUNT
+        # Pattern for: DATE  CHECKNO  AMOUNT (FIXED: 3+ digits for check number)
         triplet = re.compile(
             r"""
             (?P<date>\b\d{1,2}/\d{1,2}/\d{2,4}\b)    # date
@@ -507,7 +417,7 @@ class BankOfAmericaParser(BaseParser):
                 Transaction(
                     date=self._standardize_date(date_str),
                     description="Check",
-                    amount=amount,
+                    amount=amount,  # Use amount exactly as extracted
                     check_number=check_no,
                     transaction_type="check",
                 )
@@ -515,12 +425,42 @@ class BankOfAmericaParser(BaseParser):
 
         return txns
     
+    def _is_simple_daily_ledger_table(self, df: pd.DataFrame) -> bool:
+        """Detect 'Daily ledger balances' tables even when rows are broken into single pairs."""
+        if df.empty or df.shape[0] < 3:
+            return False
+
+        # If we see check numbers, it's not a ledger table
+        sample_text = " ".join(self._norm(self._row_to_text(r)) for _, r in df.head(5).iterrows())
+        if re.search(r"\bcheck\b.*\d{3,}", sample_text, re.IGNORECASE):
+            return False
+
+        simple_rows = 0
+        for _, row in df.head(5).iterrows():
+            row_text = self._norm(self._row_to_text(row))
+
+            # Count rows that are just one or more ledger pairs
+            if self.pure_ledger_pat.match(row_text) or self.single_ledger_pat.match(row_text):
+                simple_rows += 1
+                continue
+
+            # Fallback: strip dates/amounts and see if little remains
+            temp = re.sub(r"\b\d{1,2}/\d{1,2}\b", "", row_text)
+            temp = re.sub(r"\d[\d,]*\.\d{2}", "", temp)
+            temp = re.sub(r"[(),\s$]+", "", temp).strip()
+            if len(temp) <= 5:
+                simple_rows += 1
+
+        return simple_rows >= 3
+    
     def _is_edi_payment(self, text: str) -> bool:
         """
         Check if transaction is an EDI payment from specific companies.
+        Look for: ITG Brands, Helix Payment, Reynolds Marketing, PM USA, USSmokeless, Japan Tobac
         """
         upper_text = text.upper()
         
+        # List of specific companies to include as EDI payments
         edi_companies = [
             "ITG BRANDS",
             "HELIX PAYMENT", 
@@ -530,6 +470,7 @@ class BankOfAmericaParser(BaseParser):
             "JAPAN TOBAC"
         ]
         
+        # Check if any of these companies appear in the transaction description
         for company in edi_companies:
             if company in upper_text:
                 return True
@@ -537,7 +478,7 @@ class BankOfAmericaParser(BaseParser):
         return False
     
     def _extract_check_number(self, text: str) -> Optional[str]:
-        """Extract check number from text"""
+        """Extract check number from text - updated for longer check numbers"""
         # First try: Look for "Check #123456" format
         m = re.search(r"Check\s*#?\s*(\d{3,})", text, flags=re.IGNORECASE)
         if m:
@@ -551,7 +492,7 @@ class BankOfAmericaParser(BaseParser):
         # Third try: Just find the longest number sequence
         numbers = re.findall(r"\b\d{3,}\b", text)
         if numbers:
-            return numbers[-1]
+            return numbers[-1]  # Return the last (rightmost) number found
         
         return None
 
