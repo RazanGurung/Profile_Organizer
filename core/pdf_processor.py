@@ -213,15 +213,30 @@ class BankStatementProcessor:
             for i, t in enumerate(small_tables):
                 print(f"  Small table {i}: {t.shape[0]}x{t.shape[1]} rows")
         
+        # # Use the specific parser to process the tables
+        # transactions = parser.process_tables(tables)
+        # uniq = {}
+        # for tx in transactions:
+        #     uniq[self._txn_key(tx)] = tx
+        # transactions = list(uniq.values())
+
+        # # NEW: stable, section-aware ordering
+        # transactions = self._sort_txns(transactions)
+
         # Use the specific parser to process the tables
         transactions = parser.process_tables(tables)
         uniq = {}
         for tx in transactions:
             uniq[self._txn_key(tx)] = tx
         transactions = list(uniq.values())
+        
+        print(f"After deduplication: {len(transactions)} unique transactions")
 
-        # NEW: stable, section-aware ordering
-        transactions = self._sort_txns(transactions)
+        # Add monthly summaries for Bank of America AFTER deduplication
+        if parser.bank_name == "bank_of_america":
+            transactions = self._add_boa_monthly_summaries(transactions)
+        else:
+            transactions = self._sort_txns(transactions)
 
         print(f"Extracted {len(transactions)} transactions")
         return bank_name, transactions
@@ -284,5 +299,189 @@ class BankStatementProcessor:
         self.supported_banks.append(parser.bank_name)
         print(f"Added parser for {parser.bank_name}")
 
+    # def _add_boa_monthly_summaries(self, transactions: List[Transaction]) -> List[Transaction]:
+    #     """Add monthly deposit summaries for Bank of America"""
+    #     from collections import defaultdict
+    #     import calendar
+        
+    #     print("Adding BoA monthly summaries after deduplication...")
+        
+    #     # Group by month and calculate deposit totals
+    #     monthly_groups = defaultdict(list)
+    #     monthly_deposit_totals = defaultdict(float)
+        
+    #     for txn in transactions:
+    #         try:
+    #             date_parts = txn.date.split("/")
+    #             month = int(date_parts[0])
+    #             year = int(date_parts[2]) if len(date_parts) == 3 else 2024
+    #             if year < 100:
+    #                 year += 2000
+                
+    #             month_key = f"{year}-{month:02d}"
+    #             monthly_groups[month_key].append(txn)
+                
+    #             # Sum deposits
+    #             if txn.transaction_type == "deposit" and txn.amount > 0:
+    #                 monthly_deposit_totals[month_key] += txn.amount
+                    
+    #         except (ValueError, IndexError):
+    #             monthly_groups["unknown"].append(txn)
+        
+    #     # Build final list with summaries
+    #     final_transactions = []
+        
+    #     for month_key in sorted(monthly_groups.keys()):
+    #         if month_key == "unknown":
+    #             final_transactions.extend(monthly_groups[month_key])
+    #             continue
+            
+    #         month_txns = monthly_groups[month_key]
+    #         deposit_total = monthly_deposit_totals[month_key]
+            
+    #         print(f"Month {month_key}: ${deposit_total:.2f} deposits")
+            
+    #         # Add summary first
+    #         if deposit_total > 0:
+    #             year, month = month_key.split("-")
+    #             year, month = int(year), int(month)
+    #             last_day = calendar.monthrange(year, month)[1]
+                
+    #             summary = Transaction(
+    #                 date=f"{month:02d}/{last_day:02d}/{year}",
+    #                 description="Deposits",
+    #                 amount=deposit_total,
+    #                 check_number=None,
+    #                 transaction_type="deposit"
+    #             )
+    #             final_transactions.append(summary)
+    #             print(f"Added summary: {summary.date} - ${deposit_total:.2f}")
+            
+    #         # Sort and add month transactions
+    #         def sort_key(t):
+    #             priority = {"deposit": 0, "withdrawal": 1, "check": 2}
+    #             return (priority.get(t.transaction_type, 9), t.date, t.description)
+            
+    #         final_transactions.extend(sorted(month_txns, key=sort_key))
+        
+    #     return final_transactions
+    
+
+
+
+
+
+
+
+
+
+    def _add_boa_monthly_summaries(self, transactions: List[Transaction]) -> List[Transaction]:
+        """Add monthly deposit summaries for Bank of America with EDI payment structure"""
+        from collections import defaultdict
+        import calendar
+        
+        print("Adding BoA monthly summaries with EDI structure...")
+        
+        # DEBUG: Check what transaction types we have
+        type_counts = {}
+        for txn in transactions:
+            ttype = txn.transaction_type
+            type_counts[ttype] = type_counts.get(ttype, 0) + 1
+        print(f"Transaction types before filtering: {type_counts}")
+        
+        # Group by month and calculate deposit totals
+        monthly_groups = defaultdict(list)
+        monthly_deposit_totals = defaultdict(float)
+        
+        for txn in transactions:
+            try:
+                date_parts = txn.date.split("/")
+                month = int(date_parts[0])
+                year = int(date_parts[2]) if len(date_parts) == 3 else 2024
+                if year < 100:
+                    year += 2000
+                
+                month_key = f"{year}-{month:02d}"
+                monthly_groups[month_key].append(txn)
+                
+                # Sum ALL deposits (both regular deposits and EDI payments) for summary
+                if txn.transaction_type in ["deposit", "edi_payment"] and txn.amount > 0:
+                    monthly_deposit_totals[month_key] += txn.amount
+                    
+            except (ValueError, IndexError):
+                monthly_groups["unknown"].append(txn)
+        
+        # Build final list with new structure
+        final_transactions = []
+        
+        for month_key in sorted(monthly_groups.keys()):
+            if month_key == "unknown":
+                final_transactions.extend(monthly_groups[month_key])
+                continue
+            
+            month_txns = monthly_groups[month_key]
+            deposit_total = monthly_deposit_totals[month_key]
+            
+            print(f"Month {month_key}: ${deposit_total:.2f} total deposits, {len(month_txns)} transactions")
+            
+            # 1. Add deposit summary first (based on ALL deposits)
+            if deposit_total > 0:
+                year, month = month_key.split("-")
+                year, month = int(year), int(month)
+                last_day = calendar.monthrange(year, month)[1]
+                
+                summary = Transaction(
+                    date=f"{month:02d}/{last_day:02d}/{year}",
+                    description="Deposits",
+                    amount=deposit_total,
+                    check_number=None,
+                    transaction_type="deposit_summary"
+                )
+                final_transactions.append(summary)
+                print(f"Added summary: {summary.date} - ${deposit_total:.2f}")
+            
+            # 2. Filter and sort transactions for this month
+            filtered_month_txns = []
+            
+            # DEBUG: Check transaction types in this month
+            month_type_counts = {}
+            for txn in month_txns:
+                ttype = txn.transaction_type
+                month_type_counts[ttype] = month_type_counts.get(ttype, 0) + 1
+            print(f"  Month {month_key} transaction types: {month_type_counts}")
+            
+            for txn in month_txns:
+                # Include: EDI payments, withdrawals, and checks
+                # EXCLUDE: regular deposits (keep only EDI payments from deposits)
+                if txn.transaction_type == "edi_payment":
+                    filtered_month_txns.append(txn)
+                    print(f"  Included EDI: {txn.description[:30]} - ${txn.amount}")
+                elif txn.transaction_type == "withdrawal":
+                    filtered_month_txns.append(txn)
+                    print(f"  Included withdrawal: {txn.description[:30]} - ${txn.amount}")
+                elif txn.transaction_type == "check":
+                    filtered_month_txns.append(txn)
+                    print(f"  Included check #{txn.check_number}: {txn.description[:30]} - ${txn.amount}")
+                elif txn.transaction_type == "deposit":
+                    # Skip regular deposits - they're summarized but not listed individually
+                    print(f"  Filtered out regular deposit: {txn.description[:30]} - ${txn.amount}")
+                else:
+                    print(f"  Unknown type '{txn.transaction_type}': {txn.description[:30]} - ${txn.amount}")
+            
+            # 3. Sort: EDI payments first, then withdrawals, then checks
+            def sort_key(t):
+                priority = {"edi_payment": 0, "withdrawal": 1, "check": 2}
+                return (priority.get(t.transaction_type, 9), t.date, t.description)
+            
+            sorted_filtered_txns = sorted(filtered_month_txns, key=sort_key)
+            final_transactions.extend(sorted_filtered_txns)
+            
+            print(f"  Added {len(sorted_filtered_txns)} individual transactions")
+        
+        print(f"Final structure: {len(final_transactions)} transactions")
+        return final_transactions
+
 # For backward compatibility - expose the Transaction class
 __all__ = ['BankStatementProcessor', 'Transaction']
+
+
