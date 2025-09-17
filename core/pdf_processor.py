@@ -212,18 +212,7 @@ class BankStatementProcessor:
             print(f"Found {len(small_tables)} small tables (≤5 rows) - these may contain end-of-statement transactions")
             for i, t in enumerate(small_tables):
                 print(f"  Small table {i}: {t.shape[0]}x{t.shape[1]} rows")
-        
-        # # Use the specific parser to process the tables
-        # transactions = parser.process_tables(tables)
-        # uniq = {}
-        # for tx in transactions:
-        #     uniq[self._txn_key(tx)] = tx
-        # transactions = list(uniq.values())
 
-        # # NEW: stable, section-aware ordering
-        # transactions = self._sort_txns(transactions)
-
-        # Use the specific parser to process the tables
         transactions = parser.process_tables(tables)
         uniq = {}
         for tx in transactions:
@@ -298,82 +287,6 @@ class BankStatementProcessor:
         self.parsers.append(parser)
         self.supported_banks.append(parser.bank_name)
         print(f"Added parser for {parser.bank_name}")
-
-    # def _add_boa_monthly_summaries(self, transactions: List[Transaction]) -> List[Transaction]:
-    #     """Add monthly deposit summaries for Bank of America"""
-    #     from collections import defaultdict
-    #     import calendar
-        
-    #     print("Adding BoA monthly summaries after deduplication...")
-        
-    #     # Group by month and calculate deposit totals
-    #     monthly_groups = defaultdict(list)
-    #     monthly_deposit_totals = defaultdict(float)
-        
-    #     for txn in transactions:
-    #         try:
-    #             date_parts = txn.date.split("/")
-    #             month = int(date_parts[0])
-    #             year = int(date_parts[2]) if len(date_parts) == 3 else 2024
-    #             if year < 100:
-    #                 year += 2000
-                
-    #             month_key = f"{year}-{month:02d}"
-    #             monthly_groups[month_key].append(txn)
-                
-    #             # Sum deposits
-    #             if txn.transaction_type == "deposit" and txn.amount > 0:
-    #                 monthly_deposit_totals[month_key] += txn.amount
-                    
-    #         except (ValueError, IndexError):
-    #             monthly_groups["unknown"].append(txn)
-        
-    #     # Build final list with summaries
-    #     final_transactions = []
-        
-    #     for month_key in sorted(monthly_groups.keys()):
-    #         if month_key == "unknown":
-    #             final_transactions.extend(monthly_groups[month_key])
-    #             continue
-            
-    #         month_txns = monthly_groups[month_key]
-    #         deposit_total = monthly_deposit_totals[month_key]
-            
-    #         print(f"Month {month_key}: ${deposit_total:.2f} deposits")
-            
-    #         # Add summary first
-    #         if deposit_total > 0:
-    #             year, month = month_key.split("-")
-    #             year, month = int(year), int(month)
-    #             last_day = calendar.monthrange(year, month)[1]
-                
-    #             summary = Transaction(
-    #                 date=f"{month:02d}/{last_day:02d}/{year}",
-    #                 description="Deposits",
-    #                 amount=deposit_total,
-    #                 check_number=None,
-    #                 transaction_type="deposit"
-    #             )
-    #             final_transactions.append(summary)
-    #             print(f"Added summary: {summary.date} - ${deposit_total:.2f}")
-            
-    #         # Sort and add month transactions
-    #         def sort_key(t):
-    #             priority = {"deposit": 0, "withdrawal": 1, "check": 2}
-    #             return (priority.get(t.transaction_type, 9), t.date, t.description)
-            
-    #         final_transactions.extend(sorted(month_txns, key=sort_key))
-        
-    #     return final_transactions
-    
-
-
-
-
-
-
-
-
 
     def _add_boa_monthly_summaries(self, transactions: List[Transaction]) -> List[Transaction]:
         """Add monthly deposit summaries for Bank of America with EDI payment structure"""
