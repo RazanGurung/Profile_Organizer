@@ -1,7 +1,8 @@
 import re
 from typing import List, Optional
 import pandas as pd
-from .base_parser import BaseParser, Transaction
+from ...interfaces.base_parser import BaseParser
+from ...interfaces.transaction import Transaction
 
 class BankOfAmericaParser(BaseParser):
     """Bank of America bank statement parser - trust the statement amounts as-is"""
