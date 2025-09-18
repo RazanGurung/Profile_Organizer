@@ -89,27 +89,27 @@ class BankStatementProcessor:
 
         print("Extracting tables with tabula-py...")
 
-        # Method 1: lattice (ruled tables)
-        try:
-            print("  Trying lattice method...")
-            dfs_lat = tabula.read_pdf(
-                pdf_path, pages="all", multiple_tables=True, lattice=True, guess=False,
-                pandas_options={"header": None}
-            )
-            _collect(dfs_lat, "lattice")
-        except Exception as e:
-            print(f"  Tabula lattice error: {e}")
+        # # Method 1: lattice (ruled tables)
+        # try:
+        #     print("  Trying lattice method...")
+        #     dfs_lat = tabula.read_pdf(
+        #         pdf_path, pages="all", multiple_tables=True, lattice=True, guess=False,
+        #         pandas_options={"header": None}
+        #     )
+        #     _collect(dfs_lat, "lattice")
+        # except Exception as e:
+        #     print(f"  Tabula lattice error: {e}")
 
-        # Method 2: stream (whitespace-separated tables)
-        try:
-            print("  Trying stream method...")
-            dfs_str = tabula.read_pdf(
-                pdf_path, pages="all", multiple_tables=True, stream=True, guess=True,
-                pandas_options={"header": None}
-            )
-            _collect(dfs_str, "stream")
-        except Exception as e:
-            print(f"  Tabula stream error: {e}")
+        # # Method 2: stream (whitespace-separated tables)
+        # try:
+        #     print("  Trying stream method...")
+        #     dfs_str = tabula.read_pdf(
+        #         pdf_path, pages="all", multiple_tables=True, stream=True, guess=True,
+        #         pandas_options={"header": None}
+        #     )
+        #     _collect(dfs_str, "stream")
+        # except Exception as e:
+        #     print(f"  Tabula stream error: {e}")
 
         # Method 3: more aggressive pass for Bank of America
         # (normalize bank name to a slug so this reliably triggers)
@@ -214,12 +214,14 @@ class BankStatementProcessor:
                 print(f"  Small table {i}: {t.shape[0]}x{t.shape[1]} rows")
 
         transactions = parser.process_tables(tables)
-        uniq = {}
-        for tx in transactions:
-            uniq[self._txn_key(tx)] = tx
-        transactions = list(uniq.values())
+
+        #this is used for strict duplicate data handling which does not think need because we do have duplicate but useful data in the system
+        # uniq = {}
+        # for tx in transactions:
+        #     uniq[self._txn_key(tx)] = tx
+        # transactions = list(uniq.values())
         
-        print(f"After deduplication: {len(transactions)} unique transactions")
+        # print(f"After deduplication: {len(transactions)} unique transactions")
 
         # Add monthly summaries for Bank of America AFTER deduplication
         if parser.bank_name == "bank_of_america":
