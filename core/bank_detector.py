@@ -13,6 +13,12 @@ class BankDetector:
                 "strong_indicators": ["P.O. Box 25118", "Tampa, FL 33622-5118", "1.888.BUSINESS"],
                 "account_patterns": [r"Account number:\s*\d{4}\s*\d{4}\s*\d{4}"],
                 "header_patterns": ["Your Business Advantage Fundamentals"]
+            },
+            "wells_fargo": {
+                "keywords": ["WELLS FARGO", "NAVIGATE BUSINESS CHECKING", "WELLSFARGO.COM/BIZ"],
+                "strong_indicators": ["1-800-CALL-WELLS", "Portland, OR 97228-6995", "wellsfargo.com/biz"],
+                "account_patterns": [r"Account number:\s*\d{10}"],
+                "header_patterns": ["Navigate Business Checking"]
             }
         }
     
@@ -24,10 +30,15 @@ class BankDetector:
                 print("Could not extract text from PDF")
                 return None
             
-            # For now, just check BoA
+            #check BoA
             if self._is_bank_of_america(text_content):
                 print("Detected: Bank of America")
                 return "bank_of_america"
+            
+            # 🆕 CHECK WELLS FARGO:
+            if self._is_wells_fargo(text_content):
+                print("Detected: Wells Fargo")
+                return "wells_fargo"
             
             print("No bank patterns matched")
             return None
@@ -67,3 +78,24 @@ class BankDetector:
         print(f"BoA detection score: {total_score} (keywords: {keyword_matches}, indicators: {indicator_matches}, patterns: {pattern_matches})")
         
         return total_score >= 2  # Require at least 2 points to be confident
+    
+    # 🆕 ADD WELLS FARGO DETECTION METHOD:
+    def _is_wells_fargo(self, text: str) -> bool:
+        """Check if this is a Wells Fargo statement"""
+        text_upper = text.upper()
+        patterns = self.bank_patterns["wells_fargo"]
+        
+        # Check keywords
+        keyword_matches = sum(1 for keyword in patterns["keywords"] if keyword in text_upper)
+        
+        # Check strong indicators  
+        indicator_matches = sum(1 for indicator in patterns["strong_indicators"] if indicator.upper() in text_upper)
+        
+        # Check account patterns
+        pattern_matches = sum(1 for pattern in patterns["account_patterns"] if re.search(pattern, text, re.IGNORECASE))
+        
+        total_score = keyword_matches + (indicator_matches * 2) + (pattern_matches * 3)
+        
+        print(f"Wells Fargo detection score: {total_score} (keywords: {keyword_matches}, indicators: {indicator_matches}, patterns: {pattern_matches})")
+        
+        return total_score >= 2

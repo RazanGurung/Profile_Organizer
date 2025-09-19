@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 from .bank_detector import BankDetector
 from .bank_processors.bofa.bofa_processor import BankOfAmericaProcessor
+from .bank_processors.wells_fargo.wf_processor import WellsFargoProcessor
 
 class ProcessorFactory:
     """Factory to create the appropriate processor for each bank"""
@@ -8,10 +9,10 @@ class ProcessorFactory:
     def __init__(self):
         self.detector = BankDetector()
         
-        # Registry of bank processors - start with just BoA
+        # Registry of bank processors 
         self.processor_classes = {
             "bank_of_america": BankOfAmericaProcessor,
-            # We'll add more banks here later
+            "wells_fargo": WellsFargoProcessor,
         }
     
     def create_processor(self, pdf_path: str) -> Tuple[Optional[str], Optional[object]]:
