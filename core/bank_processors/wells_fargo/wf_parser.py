@@ -21,9 +21,7 @@
 #         return ["WELLS FARGO", "NAVIGATE BUSINESS CHECKING", "WELLSFARGO.COM/BIZ"]
     
 #     def process_tables(self, tables: List[pd.DataFrame]) -> List[Transaction]:
-#         """
-#         Process Wells Fargo tables using exact logic from test file
-#         """
+#         """Process Wells Fargo tables using exact logic from test file"""
 #         print(f"Processing {len(tables)} tables for Wells Fargo...")
 
 #         # Find transaction tables (exclude check summaries)
@@ -35,6 +33,16 @@
 #                 continue
 
 #             print(f"Table {i}: {table.shape[0]} rows, {table.shape[1]} cols")
+            
+#             # Debug: Print sample of table content for small tables
+#             if table.shape[0] <= 5:
+#                 print(f"  Small table {i} sample content:")
+#                 for row_idx in range(min(3, len(table))):
+#                     row_content = []
+#                     for col_idx in range(min(5, table.shape[1])):
+#                         cell = str(table.iloc[row_idx, col_idx]).strip()
+#                         row_content.append(cell[:20] if cell else "EMPTY")
+#                     print(f"    Row {row_idx}: {' | '.join(row_content)}")
 
 #             if self._is_check_summary_table(table):
 #                 print(f"  -> Skipping: Check summary table")
@@ -86,7 +94,10 @@
     
 #     def _is_transaction_table(self, table: pd.DataFrame) -> bool:
 #         """Check if table contains Wells Fargo transactions"""
-#         if table.shape[0] < 3 or table.shape[1] < 4:
+#         if table.shape[0] < 1:
+#             return False
+        
+#         if table.shape[1] < 3:
 #             return False
         
 #         # Count transaction indicators
@@ -94,8 +105,8 @@
 #         amount_count = 0
 #         keyword_count = 0
         
-#         # Check first 15 rows for patterns
-#         for row_idx in range(min(15, len(table))):
+#         # Check all rows for patterns
+#         for row_idx in range(len(table)):
 #             for col_idx in range(table.shape[1]):
 #                 cell = str(table.iloc[row_idx, col_idx]).strip()
                 
@@ -109,11 +120,15 @@
                 
 #                 # Transaction keywords
 #                 cell_lower = cell.lower()
-#                 keywords = ['bankcard', 'purchase', 'ach', 'deposit', 'payment', 'tobacco', 'mtot']
+#                 keywords = ['bankcard', 'purchase', 'ach', 'deposit', 'payment', 'tobacco', 'mtot', 'shell', 'authorized']
 #                 if any(keyword in cell_lower for keyword in keywords):
 #                     keyword_count += 1
         
-#         return (date_count >= 2 and amount_count >= 2) or keyword_count >= 3
+#         # More lenient criteria for small tables
+#         if table.shape[0] <= 3:
+#             return (date_count >= 1 and amount_count >= 1) or keyword_count >= 2
+#         else:
+#             return (date_count >= 2 and amount_count >= 2) or keyword_count >= 3
 
 #     def _is_check_summary_table(self, table: pd.DataFrame) -> bool:
 #         """Detect check summary tables and check image tables to exclude them"""
@@ -173,33 +188,72 @@
 #                 col1 = str(table.iloc[row_idx, 0]).strip()
 #                 col2 = str(table.iloc[row_idx, 1]).strip()
                 
-#                 if (re.match(r'^\d{4}$', col1) and 
-#                     re.match(r'^\d{1,2}/\d{1,2}$', col2)):
+#                 if (re.match(r'^\d{4}$', col1) and re.match(r'^\d{1,2}/\d{1,2}$', col2)):
 #                     check_date_pattern_count += 1
         
 #         return check_date_pattern_count >= 3
 
 #     def _process_raw_rows(self, all_rows: List[List[str]]) -> List[List[str]]:
-#         """Process raw rows through the Wells Fargo pipeline - exact from test file"""
+#         """Process raw rows through the Wells Fargo pipeline"""
 #         print("Processing raw Wells Fargo data...")
+#         print(f"Starting with {len(all_rows)} total rows")
+        
+#         # Debug: Look for Shell Oil transaction in raw data
+#         shell_found = False
+#         for i, row in enumerate(all_rows):
+#             row_text = " ".join(row).lower()
+#             if "shell oil" in row_text:
+#                 shell_found = True
+#                 print(f"🔍 Found Shell Oil transaction at row {i}: {row[:4]}")
+        
+#         if not shell_found:
+#             print("⚠️  Shell Oil transaction not found in raw data")
         
 #         # Step 1: Remove ending balance column
 #         processed_rows = self._remove_ending_balance_column(all_rows)
+#         print(f"After removing balance column: {len(processed_rows)} rows")
         
 #         # Step 2: Add monthly summary
 #         processed_rows = self._add_monthly_summary(processed_rows)
+#         print(f"After adding monthly summary: {len(processed_rows)} rows")
         
 #         # Step 3: Filter deposits (keep only EDI)
 #         processed_rows = self._filter_deposits_keep_edi(processed_rows)
+#         print(f"After filtering deposits: {len(processed_rows)} rows")
+        
+#         # Debug: Check if Shell Oil is still there after filtering
+#         shell_found_after_filter = False
+#         for i, row in enumerate(processed_rows):
+#             row_text = " ".join(row).lower()
+#             if "shell oil" in row_text:
+#                 shell_found_after_filter = True
+#                 print(f"🔍 Shell Oil still present after filtering at row {i}: {row[:4]}")
+        
+#         if shell_found and not shell_found_after_filter:
+#             print("❌ Shell Oil transaction was removed during deposit filtering!")
         
 #         # Step 4: Sort by transaction type
 #         processed_rows = self._sort_transactions_by_type(processed_rows)
+#         print(f"After sorting by type: {len(processed_rows)} rows")
         
 #         # Step 5: Merge amount columns
 #         processed_rows = self._merge_amount_columns(processed_rows)
+#         print(f"After merging amount columns: {len(processed_rows)} rows")
         
 #         # Step 6: Remove description-only rows
 #         processed_rows = self._remove_description_only_rows(processed_rows)
+#         print(f"Final processed rows: {len(processed_rows)} rows")
+        
+#         # Final debug: Check if Shell Oil made it through the entire pipeline
+#         shell_found_final = False
+#         for i, row in enumerate(processed_rows):
+#             row_text = " ".join(row).lower()
+#             if "shell oil" in row_text:
+#                 shell_found_final = True
+#                 print(f"✅ Shell Oil transaction final position at row {i}: {row}")
+        
+#         if shell_found and not shell_found_final:
+#             print("❌ Shell Oil transaction was lost somewhere in the processing pipeline!")
         
 #         return processed_rows
 
@@ -251,7 +305,7 @@
 #                 if not month_year:
 #                     # Use first date to determine month/year
 #                     month, day = row[0].strip().split('/')
-#                     month_year = f"{month.zfill(2)}/2022"  # Default year
+#                     month_year = f"{month.zfill(2)}/2022"
                 
 #                 # Calculate totals from deposits/credits column
 #                 if len(row) >= 5:
@@ -274,7 +328,6 @@
 #             elif month_num in [4, 6, 9, 11]:
 #                 last_day = 30
 #             elif month_num == 2:
-#                 # Leap year check
 #                 if year_num % 4 == 0 and (year_num % 100 != 0 or year_num % 400 == 0):
 #                     last_day = 29
 #                 else:
@@ -285,10 +338,10 @@
 #             # Create summary row
 #             if len(all_rows[0]) >= 4:
 #                 summary_row = [
-#                     last_date,                    # Date (last day of month)
-#                     "",                           # Check Number (empty)
-#                     "Deposits",                   # Description
-#                     f"{deposits_total:.2f}"       # Total deposits amount
+#                     last_date,
+#                     "",
+#                     "Deposits",
+#                     f"{deposits_total:.2f}"
 #                 ]
                 
 #                 # Pad to match row length
@@ -319,6 +372,11 @@
 #                 filtered_rows.append(row)
 #                 continue
             
+#             # Debug Shell Oil specifically
+#             row_text = " ".join(row).lower()
+#             if "shell oil" in row_text:
+#                 print(f"🔍 Processing Shell Oil row: {row[:5]}")
+            
 #             # Check if this is a deposit entry
 #             is_deposit = False
 #             is_edi = False
@@ -327,6 +385,10 @@
 #                 # Has deposit amount but no withdrawal amount
 #                 has_deposit = row[3] and row[3].strip() and row[3].strip() != ""
 #                 has_withdrawal = row[4] and row[4].strip() and row[4].strip() != ""
+                
+#                 if "shell oil" in row_text:
+#                     print(f"   Shell Oil - has_deposit: {has_deposit}, has_withdrawal: {has_withdrawal}")
+#                     print(f"   Shell Oil - deposit col: '{row[3]}', withdrawal col: '{row[4]}'")
                 
 #                 if has_deposit and not has_withdrawal:
 #                     is_deposit = True
@@ -340,14 +402,21 @@
 #                         'edi', 'edi payment', 'edi pymnts', 'japan tobac', 'itg brands'
 #                     ]):
 #                         is_edi = True
+                        
+#                     if "shell oil" in row_text:
+#                         print(f"   Shell Oil - is_deposit: {is_deposit}, is_edi: {is_edi}")
             
 #             # Keep non-deposits, or EDI payments
 #             if not is_deposit or is_edi:
 #                 filtered_rows.append(row)
 #                 if is_edi:
 #                     edi_kept += 1
+#                 if "shell oil" in row_text:
+#                     print(f"   ✅ Shell Oil KEPT (not deposit or is EDI)")
 #             else:
 #                 deposits_removed += 1
+#                 if "shell oil" in row_text:
+#                     print(f"   ❌ Shell Oil REMOVED (regular deposit)")
         
 #         print(f"Removed {deposits_removed} regular deposits, kept {edi_kept} EDI payments")
 #         return filtered_rows
@@ -422,7 +491,7 @@
 #         if len(row) >= 4:
 #             deposit_amount = row[3].strip() if row[3] else ""
 #             if deposit_amount and deposit_amount != "":
-#                 return "EDI"  # Remaining deposits should be EDI payments
+#                 return "EDI"
         
 #         return "OTHER"
 
@@ -435,7 +504,7 @@
 #                     return (int(month), int(day))
 #                 except:
 #                     pass
-#             return (99, 99)  # Put undated items at end
+#             return (99, 99)
         
 #         return sorted(rows, key=get_date_key)
 
@@ -447,7 +516,7 @@
 #         print("Merging deposit and withdrawal columns into one amount column...")
         
 #         merged_rows = []
-#         year = "2022"  # Default year for Wells Fargo statements
+#         year = "2022"
         
 #         for row in all_rows:
 #             if len(row) >= 5:
@@ -461,29 +530,28 @@
 #                 if deposit_str and deposit_str != "":
 #                     try:
 #                         deposit_amount = float(deposit_str.replace(',', ''))
-#                         final_amount = f"{deposit_amount:.2f}"  # Positive
+#                         final_amount = f"{deposit_amount:.2f}"
 #                     except ValueError:
 #                         pass
                 
 #                 if withdrawal_str and withdrawal_str != "":
 #                     try:
 #                         withdrawal_amount = float(withdrawal_str.replace(',', '').replace('-', ''))
-#                         final_amount = f"-{withdrawal_amount:.2f}"  # Negative
+#                         final_amount = f"-{withdrawal_amount:.2f}"
 #                     except ValueError:
 #                         pass
                 
 #                 # Fix date format to include year
 #                 date_str = row[0]
 #                 if re.match(r'^\d{1,2}/\d{1,2}$', date_str.strip()):
-#                     # Add year to MM/DD format
 #                     date_str = f"{date_str.strip()}/{year}"
                 
 #                 # Create new row: Date, Check#, Description, Amount
 #                 new_row = [
-#                     date_str,  # Date with year
-#                     row[1],    # Check Number
-#                     row[2],    # Description
-#                     final_amount  # Combined Amount
+#                     date_str,
+#                     row[1],
+#                     row[2],
+#                     final_amount
 #                 ]
                 
 #                 merged_rows.append(new_row)
@@ -492,7 +560,6 @@
 #                 # Handle rows with fewer columns
 #                 date_str = row[0]
 #                 if re.match(r'^\d{1,2}/\d{1,2}$', date_str.strip()):
-#                     # Add year to MM/DD format
 #                     date_str = f"{date_str.strip()}/{year}"
                 
 #                 new_row = [date_str, row[1], row[2], row[3]]
@@ -525,9 +592,7 @@
             
 #             if len(row) >= 1:
 #                 date_cell = row[0].strip()
-#                 # Check for both MM/DD/YYYY and MM/DD formats
-#                 if date_cell and (re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', date_cell) or 
-#                                 re.match(r'^\d{1,2}/\d{1,2}$', date_cell)):
+#                 if date_cell and (re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', date_cell) or re.match(r'^\d{1,2}/\d{1,2}$', date_cell)):
 #                     has_date = True
             
 #             if len(row) >= 4:
@@ -539,11 +604,21 @@
 #                     except ValueError:
 #                         pass
             
+#             # Special case: if row contains transaction keywords but no date/amount, check if it's a partial transaction
+#             if not has_date and not has_amount:
+#                 row_text = " ".join(row).lower()
+#                 transaction_keywords = ['purchase authorized', 'shell oil', 'bankcard', 'mtot dep', 'ach debit']
+#                 if any(keyword in row_text for keyword in transaction_keywords):
+#                     print(f"    Found potential transaction fragment: {row[:3]}")
+#                     cleaned_rows.append(row)
+#                     continue
+            
 #             # Keep rows that have either date or amount (or both)
 #             if has_date or has_amount:
 #                 cleaned_rows.append(row)
 #             else:
 #                 removed_count += 1
+#                 print(f"    Removed description-only: {row[:3]}")
         
 #         print(f"Removed {removed_count} description-only rows")
 #         return cleaned_rows
@@ -591,7 +666,6 @@
         
 #         return transactions
 
-
 import re
 from typing import List, Optional
 import pandas as pd
@@ -599,7 +673,7 @@ from ...interfaces.base_parser import BaseParser
 from ...interfaces.transaction import Transaction
 
 class WellsFargoParser(BaseParser):
-    """Wells Fargo bank statement parser - exact implementation from test file"""
+    """Wells Fargo bank statement parser - with early deduplication to fix deposit totals"""
     
     def __init__(self):
         super().__init__()
@@ -615,7 +689,7 @@ class WellsFargoParser(BaseParser):
         return ["WELLS FARGO", "NAVIGATE BUSINESS CHECKING", "WELLSFARGO.COM/BIZ"]
     
     def process_tables(self, tables: List[pd.DataFrame]) -> List[Transaction]:
-        """Process Wells Fargo tables using exact logic from test file"""
+        """Process Wells Fargo tables with early deduplication to fix deposit totals"""
         print(f"Processing {len(tables)} tables for Wells Fargo...")
 
         # Find transaction tables (exclude check summaries)
@@ -628,16 +702,6 @@ class WellsFargoParser(BaseParser):
 
             print(f"Table {i}: {table.shape[0]} rows, {table.shape[1]} cols")
             
-            # Debug: Print sample of table content for small tables
-            if table.shape[0] <= 5:
-                print(f"  Small table {i} sample content:")
-                for row_idx in range(min(3, len(table))):
-                    row_content = []
-                    for col_idx in range(min(5, table.shape[1])):
-                        cell = str(table.iloc[row_idx, col_idx]).strip()
-                        row_content.append(cell[:20] if cell else "EMPTY")
-                    print(f"    Row {row_idx}: {' | '.join(row_content)}")
-
             if self._is_check_summary_table(table):
                 print(f"  -> Skipping: Check summary table")
                 continue
@@ -677,7 +741,10 @@ class WellsFargoParser(BaseParser):
 
         print(f"Combined {len(all_rows)} total rows from all transaction tables")
 
-        # Process the raw rows using exact test file logic
+        # 🆕 NEW: Deduplicate raw rows BEFORE processing to fix deposit totals
+        all_rows = self._deduplicate_raw_rows(all_rows)
+
+        # Process the deduplicated raw rows using exact test file logic
         processed_rows = self._process_raw_rows(all_rows)
         
         # Convert to Transaction objects
@@ -685,6 +752,41 @@ class WellsFargoParser(BaseParser):
         
         print(f"Total transactions extracted: {len(transactions)}")
         return transactions
+    
+    def _deduplicate_raw_rows(self, all_rows: List[List[str]]) -> List[List[str]]:
+        """
+        🆕 NEW: Deduplicate raw rows - only remove EXACT duplicates, preserve legitimate transactions on different dates
+        """
+        print("🔍 Deduplicating raw rows (exact matches only)...")
+        
+        unique_rows = []
+        seen_signatures = set()
+        duplicates_removed = 0
+        
+        for row in all_rows:
+            # Create a signature using ALL meaningful columns (including date)
+            # This ensures we only remove EXACT duplicates, not similar transactions on different dates
+            signature_parts = []
+            for i, cell in enumerate(row):
+                cleaned_cell = str(cell).strip()
+                signature_parts.append(cleaned_cell)
+            
+            # Create signature from the entire row content
+            signature = tuple(signature_parts)
+            
+            if signature not in seen_signatures:
+                seen_signatures.add(signature)
+                unique_rows.append(row)
+            else:
+                duplicates_removed += 1
+                # Only show first few parts for readability
+                preview = [str(cell)[:20] for cell in row[:4]]
+                print(f"   Removed exact duplicate: {preview}")
+        
+        print(f"✅ Deduplication complete: {duplicates_removed} exact duplicates removed")
+        print(f"   Total rows: {len(all_rows)} → {len(unique_rows)}")
+        
+        return unique_rows
     
     def _is_transaction_table(self, table: pd.DataFrame) -> bool:
         """Check if table contains Wells Fargo transactions"""
@@ -792,39 +894,17 @@ class WellsFargoParser(BaseParser):
         print("Processing raw Wells Fargo data...")
         print(f"Starting with {len(all_rows)} total rows")
         
-        # Debug: Look for Shell Oil transaction in raw data
-        shell_found = False
-        for i, row in enumerate(all_rows):
-            row_text = " ".join(row).lower()
-            if "shell oil" in row_text:
-                shell_found = True
-                print(f"🔍 Found Shell Oil transaction at row {i}: {row[:4]}")
-        
-        if not shell_found:
-            print("⚠️  Shell Oil transaction not found in raw data")
-        
         # Step 1: Remove ending balance column
         processed_rows = self._remove_ending_balance_column(all_rows)
         print(f"After removing balance column: {len(processed_rows)} rows")
         
-        # Step 2: Add monthly summary
+        # Step 2: Add monthly summary (now using deduplicated data for accurate totals)
         processed_rows = self._add_monthly_summary(processed_rows)
         print(f"After adding monthly summary: {len(processed_rows)} rows")
         
         # Step 3: Filter deposits (keep only EDI)
         processed_rows = self._filter_deposits_keep_edi(processed_rows)
         print(f"After filtering deposits: {len(processed_rows)} rows")
-        
-        # Debug: Check if Shell Oil is still there after filtering
-        shell_found_after_filter = False
-        for i, row in enumerate(processed_rows):
-            row_text = " ".join(row).lower()
-            if "shell oil" in row_text:
-                shell_found_after_filter = True
-                print(f"🔍 Shell Oil still present after filtering at row {i}: {row[:4]}")
-        
-        if shell_found and not shell_found_after_filter:
-            print("❌ Shell Oil transaction was removed during deposit filtering!")
         
         # Step 4: Sort by transaction type
         processed_rows = self._sort_transactions_by_type(processed_rows)
@@ -837,17 +917,6 @@ class WellsFargoParser(BaseParser):
         # Step 6: Remove description-only rows
         processed_rows = self._remove_description_only_rows(processed_rows)
         print(f"Final processed rows: {len(processed_rows)} rows")
-        
-        # Final debug: Check if Shell Oil made it through the entire pipeline
-        shell_found_final = False
-        for i, row in enumerate(processed_rows):
-            row_text = " ".join(row).lower()
-            if "shell oil" in row_text:
-                shell_found_final = True
-                print(f"✅ Shell Oil transaction final position at row {i}: {row}")
-        
-        if shell_found and not shell_found_final:
-            print("❌ Shell Oil transaction was lost somewhere in the processing pipeline!")
         
         return processed_rows
 
@@ -889,7 +958,7 @@ class WellsFargoParser(BaseParser):
         
         print("Creating monthly summary...")
         
-        # Calculate totals from all transactions
+        # Calculate totals from all transactions (now using deduplicated data)
         deposits_total = 0.0
         month_year = None
         
@@ -942,7 +1011,7 @@ class WellsFargoParser(BaseParser):
                 while len(summary_row) < len(all_rows[0]):
                     summary_row.append("")
                 
-                print(f"Summary: {last_date} | Deposits: ${deposits_total:.2f}")
+                print(f"📊 Summary created with deduplicated data: {last_date} | Deposits: ${deposits_total:.2f}")
                 
                 # Insert at the beginning
                 all_rows.insert(0, summary_row)
@@ -966,11 +1035,6 @@ class WellsFargoParser(BaseParser):
                 filtered_rows.append(row)
                 continue
             
-            # Debug Shell Oil specifically
-            row_text = " ".join(row).lower()
-            if "shell oil" in row_text:
-                print(f"🔍 Processing Shell Oil row: {row[:5]}")
-            
             # Check if this is a deposit entry
             is_deposit = False
             is_edi = False
@@ -979,10 +1043,6 @@ class WellsFargoParser(BaseParser):
                 # Has deposit amount but no withdrawal amount
                 has_deposit = row[3] and row[3].strip() and row[3].strip() != ""
                 has_withdrawal = row[4] and row[4].strip() and row[4].strip() != ""
-                
-                if "shell oil" in row_text:
-                    print(f"   Shell Oil - has_deposit: {has_deposit}, has_withdrawal: {has_withdrawal}")
-                    print(f"   Shell Oil - deposit col: '{row[3]}', withdrawal col: '{row[4]}'")
                 
                 if has_deposit and not has_withdrawal:
                     is_deposit = True
@@ -996,21 +1056,14 @@ class WellsFargoParser(BaseParser):
                         'edi', 'edi payment', 'edi pymnts', 'japan tobac', 'itg brands'
                     ]):
                         is_edi = True
-                        
-                    if "shell oil" in row_text:
-                        print(f"   Shell Oil - is_deposit: {is_deposit}, is_edi: {is_edi}")
             
             # Keep non-deposits, or EDI payments
             if not is_deposit or is_edi:
                 filtered_rows.append(row)
                 if is_edi:
                     edi_kept += 1
-                if "shell oil" in row_text:
-                    print(f"   ✅ Shell Oil KEPT (not deposit or is EDI)")
             else:
                 deposits_removed += 1
-                if "shell oil" in row_text:
-                    print(f"   ❌ Shell Oil REMOVED (regular deposit)")
         
         print(f"Removed {deposits_removed} regular deposits, kept {edi_kept} EDI payments")
         return filtered_rows

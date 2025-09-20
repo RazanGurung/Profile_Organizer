@@ -211,17 +211,17 @@ class WellsFargoProcessor:
         # Process using Wells Fargo parser with test file logic
         transactions = self.parser.process_tables(tables)
 
-        # ✅ Final safeguard: deduplicate after parsing
-        unique_txns = []
-        seen = set()
-        for txn in transactions:
-            signature = (txn.date, txn.check_number, txn.description, txn.amount)
-            if signature not in seen:
-                seen.add(signature)
-                unique_txns.append(txn)
+        # # ✅ Final safeguard: deduplicate after parsing
+        # unique_txns = []
+        # seen = set()
+        # for txn in transactions:
+        #     signature = (txn.date, txn.check_number, txn.description, txn.amount)
+        #     if signature not in seen:
+        #         seen.add(signature)
+        #         unique_txns.append(txn)
 
-        print(f"Extracted {len(unique_txns)} unique Wells Fargo transactions")
-        return self.bank_name, unique_txns
+        print(f"Extracted {len(transactions)} unique Wells Fargo transactions")
+        return self.bank_name, transactions
 
 
     def export_to_csv(self, transactions: List[Transaction], output_path: str):
