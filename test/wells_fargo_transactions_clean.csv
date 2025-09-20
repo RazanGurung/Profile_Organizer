@@ -1,51 +1,122 @@
 Date,Check No,Description,Amount
-09/30/2022,,Deposits,37968.26
-9/1,,"Itg Brands, LLC EDI Pymnts Zltc1521307502 Tobacco House",52.36
-9/9,,"Itg Brands, LLC EDI Pymnts Zltc1521386991 Tobacco House",503.90
-9/20,,Japan Tobac 4565 EDI Paymnt SEP 20 7700685644,369.10
-9/1,,Purchase authorized on 08/31 National Retail So 800-2150931,-31.54
-9/2,,Purchase authorized on 08/31 Sheetz 0329 0000 Rocky Mount,-63.29
-9/2,<,Business to Business ACH Debit - National Retail ACH 220901,-26.27
-9/2,<,Business to Business ACH Debit - Bankcard-1205 Mtot Disc,-79.00
-9/2,<,Business to Business ACH Debit - Bankcard 1131 Mtot Disc,-1215.22
-9/2,<,Business to Business ACH Debit - Mkb Realtors Web Pmts,-2020.00
-9/6,,Purchase authorized on 08/31 Paypal *Nrs 402-935-7733 NJ,-65.29
-9/6,,Purchase authorized on 09/01 DD Doordash Subway,-25.67
-9/6,,Purchase authorized on 09/02 DD Doordash Subway,-24.23
-9/6,,Purchase authorized on 09/03 DD Doordash Subway,-25.67
-9/6,,Purchase authorized on 09/04 DD Doordash Subway,-22.78
-9/6,,Recurring Payment authorized on 09/05 Cox Roanoke Comm S,-252.69
-9/6,,Purchase authorized on 09/05 Paypal *Nrs 402-935-7733 NJ,-21.74
-9/7,,Purchase authorized on 09/06 Belk #462 Tanglewo Roanoke,-308.53
-9/7,,Purchase authorized on 09/06 Belk #462 Tanglewo Roanoke,-124.57
-9/8,,Purchase authorized on 09/06 Sheetz 0329 0000 Rocky Mount,-66.34
-9/9,,Purchase authorized on 09/07 A Eagle Outftr0000 Lynchburg,-73.66
-9/9,,Purchase authorized on 09/08 Madina Market Herndon VA,-114.05
-9/9,,Purchase authorized on 09/08 Madina Market Herndon VA,-20.99
-9/12,,Purchase authorized on 09/08 Sunoco 0406205500,-50.66
-9/13,,Purchase authorized on 09/11 Roanoke Gas/Ezpay,-37.05
-9/14,,Purchase authorized on 09/12 Shell Oil 57546564 Rocky,-73.85
-9/19,,Purchase authorized on 09/17 Step.Com* Alaa S Step.Com CA,-500.00
-9/20,,Purchase authorized on 09/17 Amzn Mktp US*1M3Ko,-31.69
-9/20,,Purchase authorized on 09/18 Amzn Mktp US*1M4LA,-46.20
-9/20,,Purchase authorized on 09/19 Step.Com* Alaa S Step.Com CA,-500.00
-9/22,<,Business to Business ACH Debit - VA Dept Taxation Tax Paymen,-529.61
-9/23,,Purchase authorized on 09/21 Chick-Fil-A #01107 Roanoke VA,-25.89
-9/23,,Purchase authorized on 09/22 Step.Com* Alaa S Step.Com CA,-406.00
-9/23,,Purchase authorized on 09/22 Step.Com* Alaa S Step.Com CA,-100.00
-9/26,<,Business to Business ACH Debit - Ias Group Inc Drafts Tobacco,-150.00
-9/27,,Purchase authorized on 09/26 Rocky Tobacco & VA Rocky,-1464.77
-9/27,,Purchase authorized on 09/26 Tobacco City & Vap Salem VA,-457.40
-9/29,,Purchase authorized on 09/27 Shell Oil 57546564 Roanoke VA,-68.11
-9/29,,Purchase authorized on 09/27 Cox Roanoke Comm S,-252.69
-9/29,,Purchase authorized on 09/28 Step.Com* Alaa S Step.Com CA,-200.00
-9/30,,Monthly Service Fee,-25.00
-9/9,1076,Check,-6235.65
-9/12,1072,Check,-2502.00
-9/13,1077,Check,-986.17
-9/13,1075,Check,-2492.63
-9/19,1079,Check,-1432.35
-9/21,1084,Check,-609.00
-9/22,1080,Check,-5000.00
-9/29,1086,Check,-5325.66
-9/30,1081,Check,-661.50
+10/31/2022,,Deposits,30850.40,
+Date,Number,Description,Credits,Debits
+10/3,,Bankcard 1131 Mtot Dep 220930 518353580128106 Tobacco,"1,310.53",
+,,House & Vape I,,
+10/3,,Bankcard 1131 Mtot Dep 221002 518353580128106 Tobacco,"2,217.98",
+,,House & Vape I,,
+10/3,,Purchase authorized on 10/01 National Retail So 800-2150931,,31.54
+,,NJ S582274293950601 Card 0057,,
+10/3,,Recurring Payment authorized on 10/01 ADT Security*40411,,111.23
+,,WWW.ADT.Com FL S302274618392023 Card 0057,,
+10/3,,Purchase authorized on 10/02 Step.Com* Alaa S Step.Com CA,,300.00
+,,S462276116935714 Card 0057,,
+10/3,<,Business to Business ACH Debit - Bankcard-1205 Mtot Disc,,79.00
+,,220930 530961100069087 Tobacco House and Vape,,
+10/3,<,Business to Business ACH Debit - Bankcard 1131 Mtot Disc,,"1,093.47"
+,,220930 518353580128106 Tobacco House & Vape I,,
+10/3,<,Business to Business ACH Debit - Mkb Realtors Web Pmts,,"2,020.00"
+,,100322 1Ksfh6 Amr A Salim,,
+10/3,1087,Check,,610.00
+10/4,,Bankcard 1131 Mtot Dep 221003 518353580128106 Tobacco,918.34,
+,,House & Vape I,,
+10/4,<,Business to Business ACH Debit - National Retail ACH 221003,,26.27
+,,973-438-6101 Tobacco House & Vape,,
+10/4,1083,Check,,"1,093.10"
+10/4,1082,Check,,"2,040.00"
+10/5,1085,Check,,"2,189.11"
+10/5,,Liggett Vector Payment 9237402 Lliamson,237.50,
+,,Rd\N4*Roanoke*VA\SE*9*000000978\GE*1*1\I,,
+10/5,,Bankcard 1131 Mtot Dep 221004 518353580128106 Tobacco,815.41,
+,,House & Vape I,,
+10/6,,"Itg Brands, LLC EDI Pymnts Zltc1521494504 Tobacco House",430.90,
+,,Vape IN,,
+10/6,,Bankcard 1131 Mtot Dep 221005 518353580128106 Tobacco,828.84,
+,,House & Vape I,,
+10/7,,Bankcard 1131 Mtot Dep 221006 518353580128106 Tobacco,947.23,
+,,House & Vape I,,
+10/11,1088,Check,,"4,452.00"
+10/11,,Bankcard 1131 Mtot Dep 221007 518353580128106 Tobacco,"1,175.29",
+,,House & Vape I,,
+10/11,,Bankcard 1131 Mtot Dep 221010 518353580128106 Tobacco,731.30,
+,,House & Vape I,,
+10/11,,Bankcard 1131 Mtot Dep 221009 518353580128106 Tobacco,"1,496.45",
+,,House & Vape I,,
+10/11,1089,Check,,377.71
+10/12,,Bankcard 1131 Mtot Dep 221011 518353580128106 Tobacco,625.12,
+,,House & Vape I,,
+10/13,,Bankcard 1131 Mtot Dep 221012 518353580128106 Tobacco,918.13,
+,,House & Vape I,,
+10/13,1090,Check,,"1,220.00"
+10/14,,Bankcard 1131 Mtot Dep 221013 518353580128106 Tobacco,"1,238.08",
+,,House & Vape I,,
+10/17,,Bankcard 1131 Mtot Dep 221014 518353580128106 Tobacco,891.32,
+,,House & Vape I,,
+10/17,,Bankcard 1131 Mtot Dep 221016 518353580128106 Tobacco,"1,959.02",
+,,House & Vape I,,
+10/17,,Japan Tobac 4565 EDI Paymnt Oct 17 7700699101,166.05,
+,,Ref*TN*7700699101\,,
+10/17,,Purchase authorized on 10/14 Cash App*Alaa Sali 8774174551,,60.00
+,,CA S582288054977647 Card 0057,,
+10/17,,Purchase authorized on 10/15 Cash App*Alaa Sali 8774174551,,100.00
+,,CA S382289128622363 Card 0057,,
+10/18,,Bankcard 1131 Mtot Dep 221017 518353580128106 Tobacco,822.47,
+,,House & Vape I,,
+10/18,,Purchase authorized on 10/17 Rocky Tobacco & VA Rocky,,315.90
+,,Mount VA S462291050809864 Card 0057,,
+10/18,1092,Check,,673.00
+10/18,1091,Check,,"1,034.35"
+10/19,,Bankcard 1131 Mtot Dep 221018 518353580128106 Tobacco,912.15,
+,,House & Vape I,,
+10/20,,"Itg Brands, LLC EDI Pymnts Zltc1521549075 Tobacco House",41.73,
+,,Vape IN,,
+10/20,,Bankcard 1131 Mtot Dep 221019 518353580128106 Tobacco,979.01,
+,,House & Vape I,,
+10/20,,Purchase authorized on 10/19 5 Star Juice 562-4157650 CA,,118.80
+,,S382292808725750 Card 0057,,
+10/21,,Bankcard 1131 Mtot Dep 221020 518353580128106 Tobacco,"1,010.58",
+,,House & Vape I,,
+10/21,<,Business to Business ACH Debit - VA Dept Taxation Tax Paymen,,545.50
+,,221021 xxxxx6178 Tobacco House & Vape I,,
+10/24,,Bankcard 1131 Mtot Dep 221021 518353580128106 Tobacco,"1,074.90",
+,,House & Vape I,,
+10/24,,Bankcard 1131 Mtot Dep 221023 518353580128106 Tobacco,"1,830.50",
+,,House & Vape I,,
+10/24,,Purchase authorized on 10/20 DD Doordash Szechu,,100.23
+,,855-973-1040 CA S302294007979037 Card 0057,,
+10/24,,Purchase authorized on 10/20 Bethlehem Restaura Roanoke,,16.55
+,,VA S302294041152074 Card 0057,,
+10/24,,Purchase authorized on 10/21 Step.Com* Alaa S Step.Com CA,,10.00
+,,S582294738764229 Card 0057,,
+10/24,1094,Check,,"2,638.95"
+10/25,,Bankcard 1131 Mtot Dep 221024 518353580128106 Tobacco,895.45,
+,,House & Vape I,,
+10/25,1095,Check,,"1,863.18"
+10/26,,Bankcard 1131 Mtot Dep 221025 518353580128106 Tobacco,772.66,
+,,House & Vape I,,
+10/26,,Purchase authorized on 10/25 Wal-Mart #2565 Madison Heigh,,19.90
+,,VA S302298603017462 Card 0057,,
+10/27,,Bankcard 1131 Mtot Dep 221026 518353580128106 Tobacco,"1,093.98",
+,,House & Vape I,,
+10/27,,Purchase authorized on 10/26 Cash App*Alaa Sali 8774174551,,6.00
+,,CA S382299557904621 Card 0057,,
+10/27,,Purchase authorized on 10/26 Cash App*Alaa Sali 8774174551,,20.00
+,,CA S582299650154379 Card 0057,,
+10/27,,Purchase authorized on 10/26 Cash App*Alaa Sali 8774174551,,100.00
+,,CA S382299655551677 Card 0057,,
+10/28,,Bankcard 1131 Mtot Dep 221027 518353580128106 Tobacco,"1,195.89",
+,,House & Vape I,,
+10/28,1099,Check,,"3,199.65"
+10/31,,Bankcard 1131 Mtot Dep 221028 518353580128106 Tobacco,"1,087.33",
+,,House & Vape I,,
+10/31,,Bankcard 1131 Mtot Dep 221030 518353580128106 Tobacco,"2,226.23",
+,,House & Vape I,,
+10/31,,Purchase authorized on 10/29 Cash App*Alaa Sali 8774174551,,35.00
+,,CA S302302733314883 Card 0057,,
+10/31,,Purchase authorized on 10/29 DD Doordash Chick-,,35.30
+,,855-973-1040 CA S462302733909795 Card 0057,,
+10/31,1098,Check,,"3,802.10"
+10/31,<,Business to Business ACH Debit - Ias Group Inc Drafts Tobacco,,150.00
+,,"House & Tobacco House & Vape,",,
+10/31,,Interest Payment,0.03,
+10/31,,Monthly Service Fee,,25.00

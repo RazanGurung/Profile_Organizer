@@ -90,16 +90,16 @@ def dump_wells_fargo_raw(pdf_path, output_folder="test"):
     all_rows = add_monthly_summary(all_rows)
     
     # Remove regular deposits but keep EDI payments
-    all_rows = filter_deposits_keep_edi(all_rows)
+    # all_rows = filter_deposits_keep_edi(all_rows)
     
     # Sort transactions in specified order
-    all_rows = sort_transactions_by_type(all_rows)
+    # all_rows = sort_transactions_by_type(all_rows)
     
     # Merge deposit and withdrawal columns into one amount column
-    all_rows = merge_amount_columns(all_rows)
+    # all_rows = merge_amount_columns(all_rows)
     
     # Remove rows without dates or amounts (description-only rows)
-    all_rows = remove_description_only_rows(all_rows)
+    # all_rows = remove_description_only_rows(all_rows)
     
     # Save to CSV
     csv_filename = os.path.join(output_folder, "wells_fargo_transactions_clean.csv")
@@ -637,7 +637,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         pdf_path = sys.argv[1]
     else:
-        pdf_path = "09_22_TH&V.pdf"  # Change this to your PDF filename
+        pdf_path = "10_22_TH&V.pdf"  # Change this to your PDF filename
     
     if not os.path.exists(pdf_path):
         print(f"❌ PDF not found: {pdf_path}")

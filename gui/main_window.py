@@ -126,7 +126,7 @@ class BankExtractorGUI:
         for txn in self.current_transactions:
             if txn.transaction_type in ["withdrawal", "check"] and txn.amount < 0:
                 total_withdrawals += abs(txn.amount)  # Make positive for display
-            elif txn.transaction_type in ["deposit", "edi_payment", "deposit_summary"] and txn.amount > 0:
+            elif txn.transaction_type in ["deposit_summary"] and txn.amount > 0:
                 total_deposits += txn.amount
         
         # Update display
